@@ -1,0 +1,94 @@
+/* e-ABC e-Learning without limits*/
+/* www.e-abclearning.com*/
+
+/* Put a margin on the body if the dock is shown */
+body.has_dock {
+	margin-left: 30px;
+}
+/** For the dock itself */
+#dock {
+	width: 30px;
+	position: fixed;
+	top: 0px;
+	left: 0px;
+	height: 100%;
+	border: 0;
+	z-index: 11000;
+}
+
+#dock.nothingdocked {
+	visibility: hidden;
+	display: none;
+}
+#dock .dockeditem .firstdockitem {
+	margin-top: 1em;
+}
+#dock .dockedtitle {           
+	cursor: pointer;
+}
+#dock .dockedtitle h2 {
+/*	font-size: 0.8em;*/
+	line-height: 100%;
+	text-align: center;
+}
+#dock .dockedtitle .filterrotate {
+	margin-left: 8px;
+}
+#dock .controls {
+	text-align: center;
+	width: 100%;
+}
+#dock .controls img {
+	cursor: pointer;
+}
+.hidepanelicon img {
+  width: auto !important;
+  height: auto !important;
+  margin: 0 2px; 
+} 
+/** For the panel the docked blocks are shown in */
+#dockeditempanel {
+	min-width: 200px;
+	position: relative;
+	z-index: 12000;
+	left: 100%;
+	-webkit-box-shadow:  2px 0px 8px 1px rgba(0, 0, 0, 0.3);
+	box-shadow:  2px 0px 8px 1px rgba(0, 0, 0, 0.3);
+}
+#dockeditempanel.dockitempanel_hidden {
+	display: none;
+}
+#dockeditempanel .dockeditempanel_content {
+	z-index: 12050;
+}
+#dockeditempanel .dockeditempanel_bd {
+	overflow: auto;
+	width: auto;
+}
+#dockeditempanel .dockeditempanel_bd .block_docked {
+	margin: 10px;
+}
+#dockeditempanel .dockeditempanel_hd {
+	border-bottom: 1px solid #000;
+	text-align: right;
+}
+#dockeditempanel .dockeditempanel_hd h2 {
+	display: inline;
+	margin: 0;
+	padding-right: 1em;
+}
+#dockeditempanel .dockeditempanel_hd .commands {
+	display: inline;
+}
+#dockeditempanel .dockeditempanel_hd .commands img {
+	margin-right: 2px;
+	vertical-align: middle;
+}
+/** IE 6 doesn't support fixed pos elements **/
+.ie6 #dockeditempanel {
+	position: absolute;
+}
+/** Overide for RTL layout **/
+.dir-rtl #dockeditempanel {
+	left: 670%;
+}

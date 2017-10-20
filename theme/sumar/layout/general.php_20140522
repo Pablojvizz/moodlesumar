@@ -1,0 +1,208 @@
+<?php
+
+$hasheading = ($PAGE->heading);
+$hasnavbar = (empty($PAGE->layout_options['nonavbar']) && $PAGE->has_navbar());
+$hasfooter = (empty($PAGE->layout_options['nofooter']));
+$hassidepre = (empty($PAGE->layout_options['noblocks']) && $PAGE->blocks->region_has_content('side-pre', $OUTPUT));
+$hassidepost = (empty($PAGE->layout_options['noblocks']) && $PAGE->blocks->region_has_content('side-post', $OUTPUT));
+$haslogininfo = (empty($PAGE->layout_options['nologininfo']));
+
+$showsidepre = ($hassidepre && !$PAGE->blocks->region_completely_docked('side-pre', $OUTPUT));
+$showsidepost = ($hassidepost && !$PAGE->blocks->region_completely_docked('side-post', $OUTPUT));
+
+$custommenu = $OUTPUT->custom_menu();
+$hascustommenu = (empty($PAGE->layout_options['nocustommenu']) && !empty($custommenu));
+
+$bodyclasses = array();
+if ($showsidepre && !$showsidepost) {
+    $bodyclasses[] = 'side-pre-only';
+} else if ($showsidepost && !$showsidepre) {
+    $bodyclasses[] = 'side-post-only';
+} else if (!$showsidepost && !$showsidepre) {
+    $bodyclasses[] = 'content-only';
+}
+if ($hascustommenu) {
+    $bodyclasses[] = 'has_custom_menu';
+}
+
+echo $OUTPUT->doctype() ?>
+<html <?php echo $OUTPUT->htmlattributes() ?>>
+<head>
+    <title><?php echo $PAGE->title ?></title>
+    <link rel="shortcut icon" href="<?php echo $OUTPUT->pix_url('favicon', 'theme')?>" />
+    <?php echo $OUTPUT->standard_head_html() ?>
+</head>
+<body id="<?php echo $PAGE->bodyid ?>" class="<?php echo $PAGE->bodyclasses.' '.join(' ', $bodyclasses) ?>">
+<?php echo $OUTPUT->standard_top_of_body_html() ?>
+
+<div id="page">
+<?php if ($hasheading || $hasnavbar) { ?>
+
+    <div id="page-header" class="clearfix">
+	        
+	        <?php if ($hasheading) { ?>
+		    	<h1 class="headermain"><?php echo $PAGE->heading ?></h1>
+    		    <div class="headermenu">
+        			<?php
+            			// echo $OUTPUT->login_info();
+		           		if (!empty($PAGE->layout_options['langmenu'])) {
+		        	       	echo $OUTPUT->lang_menu();
+			    	    }
+    			       	echo $PAGE->headingmenu
+        			?>
+	        	</div>
+	        <?php } ?>        
+        	<?php if ($hascustommenu) { ?>
+        <div id="custommenu"><?php echo $custommenu; ?></div>
+        <?php } ?>
+
+ 		    <?php if ($hasnavbar) { ?>
+            <div class="navbar clearfix">
+                <div class="breadcrumb"><?php echo $OUTPUT->navbar(); ?></div>
+                <div class="navbutton"> <?php echo $PAGE->button; ?></div>
+            </div>
+            <?php } ?>
+    </div>
+
+<?php } ?>
+
+<!-- END OF HEADER -->
+
+
+
+
+
+
+<?php if (empty($USER->id)): ?>
+
+<script>
+$(document).ready(function(){
+
+    /*
+    e-ABC 20131904
+    param div          el id o clase del div a dependizar (string) 
+    param select1      el id o clase del select que provocara el cambio (string)
+    param select2      el id o clase del select a dependizar (string)
+    param val          el attr value del select que provoca el cambio (string)
+    param botonsubmit  el id o clase del boton que genera el submit (string)
+    */
+
+function setcamposrel(div, select1, select2, val, botonsubmit){
+
+
+    $(div).css('color', 'red');
+    function actdesact(){
+        if ($(select1).val()==val) 
+        {
+            $(div).css('display', 'block');
+        }
+        else
+        {
+             $(select2+' > option').each(function(){
+                if($(this).attr('value')=='0')
+                {
+                $(this).attr('selected', 'selected');
+                }  
+            })
+            $(div).css('display', 'none');
+        }
+    }
+
+
+
+
+    
+    actdesact(); 
+    $(select1).change(function(){
+        actdesact();                    
+    });
+
+    $(botonsubmit).click(function(e){
+        if($(div).css('display') == 'block' && $(select2+' > option:selected').attr('value') == ''){
+            
+            alert('Faltan algunos datos por completar en el formulario');
+            e.preventDefault();
+        }
+        if($(div).css('display') == 'none'){
+           //$(select2).html('');
+           $(select2).prepend('<option value="" selected>-</option>');
+        }
+    })
+}
+
+function colorear(div){
+    $(div).css('color', 'red');
+}
+
+
+setcamposrel('#fitem_id_profile_field_tconvenio', '#id_profile_field_trabaja', '#id_profile_field_tconvenio', '0', '#id_submitbutton'); 
+setcamposrel('#fitem_id_profile_field_listaprof', '#id_profile_field_cargo', '#id_profile_field_listaprof', '1', '#id_submitbutton');
+
+})
+
+</script>
+
+
+<?php endif; ?>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    <div id="page-content">
+        <div id="region-main-box">
+            <div id="region-post-box">
+              
+                <div id="region-main-wrap">
+                    <div id="region-main">
+                        <div class="region-content">
+                            <?php echo core_renderer::MAIN_CONTENT_TOKEN ?>
+                        </div>
+                    </div>
+                </div>
+                <?php if ($hassidepre) { ?>
+                <div id="region-pre" class="block-region">
+                    <div class="region-content">
+                        <?php echo $OUTPUT->blocks_for_region('side-pre') ?>
+                    </div>
+                </div>
+                <?php } ?>
+
+                <?php if ($hassidepost) { ?>
+                <div id="region-post" class="block-region">
+                    <div class="region-content">
+                        <?php echo $OUTPUT->blocks_for_region('side-post') ?>
+                    </div>
+                </div>
+                <?php } ?>
+            </div>
+        </div>
+    </div>
+                <?php if ($hasfooter) { ?>
+    <div id="page-footer" class="clearfix">
+    <div class="footermenu">
+              <?php echo $OUTPUT->login_info(); ?>
+              </div>
+              <div class="credits">
+    <a href="http://www.e-abclearning.com" target="_blank">
+      <img src="/theme/sumar/pix/logo-eabc.png" border="0">          </a>&nbsp;
+    <a href="http://moodle.org" target="_blank">
+      <img src="/theme/sumar/pix/logo-moodle.gif" border="0">          </a>&nbsp;&nbsp;
+  </div>
+    </div>
+
+<!-- START OF FOOTER -->
+    <?php } ?>
+</div>
+<?php echo $OUTPUT->standard_end_of_body_html() ?>
+</body>
+</html>

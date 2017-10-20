@@ -1,0 +1,187 @@
+<?php 
+
+//descargar resultados de informe general 2013 en archivo csv
+
+require_once('../config.php');
+global $CFG;
+global $USER;
+
+$format = $_GET['format'];
+$year = $_GET['year'];
+
+if ($_GET['format'] != 'xls' and $_GET['format'] != 'csv'){
+	exit;
+}
+if ($_GET['year'] != '2012' and $_GET['year'] != '2013'){
+	exit;
+}
+
+ini_set('memory_limit', '256M');
+set_time_limit(1200);
+header('Content-Type: text/html; charset=utf-8');
+
+//conection:
+$link = mysqli_connect($CFG->dbhost,$CFG->dbuser,$CFG->dbpass,$CFG->dbname) or die("Error create connect " . mysqli_error($link));
+
+//configuracion para campos de tabla con tildes :( 
+$charset = "SET NAMES 'utf8'";
+$link->query($charset);
+
+$query_user = "SELECT DISTINCT  provincia_user
+          FROM view_unq_report" or die("Error in the consult.." . mysqli_error($link));
+$result_user = $link->query($query_user);
+$isuser = 0;
+while($row_user = mysqli_fetch_assoc($result_user)) {
+  if ($USER->username == $row_user['provincia_user'] or  $USER->username == 'eabc' or $USER->username == 'maria' or $USER->username == 'admin' or $USER->username == 'gestionnp'){
+  		$isuser = 1;
+  }
+}
+if (!$isuser){
+	mysqli_free_result($result_user);
+	mysqli_close($link);
+	//echo '<br />no es usuario: '.$USER->username . '<br />';
+	exit;
+
+}
+
+// consulta que trae los registros donde el nivel de avance sea finalizado en cualquier fecha.
+
+
+$query = "SELECT DISTINCT provincia_de_residencia , tipo_y_lugar_de_trabajo, establecimiento, tipo_de_organismo_y_organismo,tipo_de_función, función_que_desempeña, 
+          nombres, documento, email, phone1 , Curso ,fecha_matriculacion , Cantidad_de_horas , Nivel_de_avance , provincia_user
+          FROM view_unq_report
+          WHERE userid not in (29,109) order by nombres asc , Curso asc , Nivel_de_avance desc" or die("Error in the consult.." . mysqli_error($link));
+          
+$result = $link->query($query);
+
+// aca va a el negocio
+while($row = mysqli_fetch_assoc($result)) {
+  if ($USER->username == $row['provincia_user'] or  $USER->username == 'eabc' or $USER->username == 'maria' or $USER->username == 'admin' or $USER->username == 'gestionnp'){
+  		$data_user[]= $row;
+  }
+}
+mysqli_free_result($result);
+mysqli_close($link);
+
+$counter= 0;
+//echo '<br />';
+
+while($row = mysqli_fetch_assoc($result)) {
+  if ($USER->username == $row['provincia_user'] or  $USER->username == 'eabc' or $USER->username == 'maria' or $USER->username == 'admin' or $USER->username == 'gestionnp'){
+  		$data_user[]= $row;
+  }
+}
+
+$i = 0;
+$repetidos = 0;
+$agregado = 0;
+$data_user_b = array();
+
+foreach ($data_user as $du1) {
+	$du1['pos'] = $i;
+	$i ++;
+}
+
+//echo '<hr />';
+$data_user_b[] = $data_user['pos'][0];
+
+foreach ($data_user as $du) {
+		$flag = 0;
+		$aux = $du; 
+		$auxpos = 0;
+		foreach ($data_user_b as &$dub) {
+			
+			if (strpos($dub['Nivel_de_avance'] , 'Finalizado') === 0){
+				$text = array("Finalizado (", ")");
+				$dub['Nivel_de_avance'] = str_replace($text, "", $dub['Nivel_de_avance']);
+				$text = array("/");
+				$dub['Nivel_de_avance'] = str_replace($text, "-", $dub['Nivel_de_avance']);
+				$dub['Nivel_de_avance'] = strtotime($dub['Nivel_de_avance']);
+			}
+			if (strpos($aux['Nivel_de_avance'] , 'Finalizado') === 0){
+				$text = array("Finalizado (", ")");
+				$aux['Nivel_de_avance'] = str_replace($text, "", $aux['Nivel_de_avance']);
+				$text = array("/");
+				$aux['Nivel_de_avance'] = str_replace($text, "-", $aux['Nivel_de_avance']);
+				$aux['Nivel_de_avance'] = strtotime($aux['Nivel_de_avance']);
+			}
+			
+			if ( $aux['email'] == $dub['email'] and $aux['Curso'] == $dub['Curso'] ){
+					if ( trim($aux['Nivel_de_avance']) != 'En curso' and $dub['Nivel_de_avance'] != 'En curso' and $aux['Nivel_de_avance'] < $dub['Nivel_de_avance'] ){
+						$dub['Nivel_de_avance'] = $aux['Nivel_de_avance'];
+					
+					}
+					elseif(trim($aux['Nivel_de_avance']) != 'En curso' and $dub['Nivel_de_avance'] == 'En curso') {
+						$dub['Nivel_de_avance'] = $aux['Nivel_de_avance'];
+					}
+				$flag = 1;
+			}
+		}
+		unset($dub);
+		if(!$flag) {
+			$data_user_b[] = $aux;
+		}
+}
+
+unset($du);
+
+// creacion del archivo
+$nombre_fichero = 'general_'.$year.'_'.time();
+if ($format==='xls')
+	$salida_csv = utf8_decode("provincia_de_residencia;tipo_y_lugar_de_trabajo;establecimiento;tipo_de_organismo_y_organismo;tipo_de_función;función_que_desempeña;Nombres;Documento;email;TE;Nombre del curso;Fecha matriculacion;Cantidad de horas;Nivel de avance  \n");
+if ($format==='csv')
+	$salida_csv = utf8_decode("provincia_de_residencia,tipo_y_lugar_de_trabajo,establecimiento,tipo_de_organismo_y_organismo,tipo_de_función,función_que_desempeña,Nombres,Documento,email,TE,Nombre del curso,Fecha matriculacion,Cantidad de horas,Nivel de avance \n");	
+
+if ($format==='xls'){
+	foreach ($data_user_b as $data) {
+				if ($data['Nivel_de_avance'] == 'En curso'){
+					$date = explode('/',$data['fecha_matriculacion']);
+					if ($date[2] == $year){
+						//echo '<tr><td>'.$data["provincia_de_residencia"].'</td><td>'.$data["tipo_y_lugar_de_trabajo"].'</td><td>'.utf8_encode($data["establecimiento"]).'</td><td>'.$data["tipo_de_organismo_y_organismo"].'</td><td>'.$data["tipo_de_función"].'</td><td>'.$data["función_que_desempeña"].'</td><td>'.$data["nombres"].'</td><td>'.$data["documento"].'</td><td>'.$data["email"].'</td><td>'.$data["phone1"].'</td><td>'.$data["Curso"].'</td><td>'.$data["fecha_matriculacion"].'</td><td>'.$data["Cantidad_de_horas"].'</td><td>'.$data["Nivel_de_avance"].'</td></tr>';
+						$salida_csv .=utf8_decode($data["provincia_de_residencia"]).';'.utf8_decode($data["tipo_y_lugar_de_trabajo"]).';'.utf8_decode($data["establecimiento"]).';'.utf8_decode($data["tipo_de_organismo_y_organismo"]).';'.utf8_decode($data["tipo_de_función"]).';'.utf8_decode($data["función_que_desempeña"]).';'.utf8_decode($data["nombres"]).';'.utf8_decode($data["documento"]).';'.utf8_decode($data["email"]).';'.utf8_decode($data["phone1"]).';'.utf8_decode($data["Curso"]).';'.utf8_decode($data["fecha_matriculacion"]).';'.utf8_decode($data["Cantidad_de_horas"]).';'.utf8_decode($data["Nivel_de_avance"])." \n";
+			        }
+				}
+		else {
+			
+			$data['Nivel_de_avance'] = date('d-m-Y',$data['Nivel_de_avance']);
+			//echo '<br />: fecha final: '.$data['Nivel_de_avance']; 
+			$date = explode('-',$data['Nivel_de_avance']);
+			if ($date[2] == $year){
+				//echo '<tr><td>'.$data["provincia_de_residencia"].'</td><td>'.$data["tipo_y_lugar_de_trabajo"].'</td><td>'.$data["establecimiento"].'</td><td>'.$data["tipo_de_organismo_y_organismo"].'</td><td>'.$data["tipo_de_función"].'</td><td>'.$data["función_que_desempeña"].'</td><td>'.$data["nombres"].'</td><td>'.$data["documento"].'</td><td>'.$data["email"].'</td><td>'.$data["phone1"].'</td><td>'.$data["Curso"].'</td><td>'.$data["fecha_matriculacion"].'</td><td>'.$data["Cantidad_de_horas"].'</td><td>'.$data["Nivel_de_avance"].'</td></tr>';
+	        	//$salida_csv .=utf8_decode($data["provincia_de_residencia"]).','.utf8_decode($data["tipo_y_lugar_de_trabajo"]).','.utf8_decode($data["establecimiento"]).','.utf8_decode($data["tipo_de_organismo_y_organismo"]).','.utf8_decode($data["tipo_de_función"]).','.utf8_decode($data["función_que_desempeña"]).','.utf8_decode($data["nombres"]).','.utf8_decode($data["documento"]).','.utf8_decode($data["email"]).','.utf8_decode($data["phone1"]).','.utf8_decode($data["Curso"]).','.utf8_decode($data["fecha_matriculacion"]).','.utf8_decode($data["Cantidad_de_horas"]).','.utf8_decode($data["Nivel_de_avance"])." \n";
+	        	$salida_csv .=utf8_decode($data["provincia_de_residencia"]).';'.utf8_decode($data["tipo_y_lugar_de_trabajo"]).';'.utf8_decode($data["establecimiento"]).';'.utf8_decode($data["tipo_de_organismo_y_organismo"]).';'.utf8_decode($data["tipo_de_función"]).';'.utf8_decode($data["función_que_desempeña"]).';'.utf8_decode($data["nombres"]).';'.utf8_decode($data["documento"]).';'.utf8_decode($data["email"]).';'.utf8_decode($data["phone1"]).';'.utf8_decode($data["Curso"]).';'.utf8_decode($data["fecha_matriculacion"]).';'.utf8_decode($data["Cantidad_de_horas"]).';'.utf8_decode($data["Nivel_de_avance"])." \n";
+	        }
+		}
+	}
+}
+if ($format==='csv'){
+	foreach ($data_user_b as $data) {
+				if ($data['Nivel_de_avance'] == 'En curso'){
+					$date = explode('/',$data['fecha_matriculacion']);
+					if ($date[2] == $year){
+						//echo '<tr><td>'.$data["provincia_de_residencia"].'</td><td>'.$data["tipo_y_lugar_de_trabajo"].'</td><td>'.utf8_encode($data["establecimiento"]).'</td><td>'.$data["tipo_de_organismo_y_organismo"].'</td><td>'.$data["tipo_de_función"].'</td><td>'.$data["función_que_desempeña"].'</td><td>'.$data["nombres"].'</td><td>'.$data["documento"].'</td><td>'.$data["email"].'</td><td>'.$data["phone1"].'</td><td>'.$data["Curso"].'</td><td>'.$data["fecha_matriculacion"].'</td><td>'.$data["Cantidad_de_horas"].'</td><td>'.$data["Nivel_de_avance"].'</td></tr>';
+						$salida_csv .=utf8_decode($data["provincia_de_residencia"]).','.utf8_decode($data["tipo_y_lugar_de_trabajo"]).','.utf8_decode($data["establecimiento"]).','.utf8_decode($data["tipo_de_organismo_y_organismo"]).','.utf8_decode($data["tipo_de_función"]).','.utf8_decode($data["función_que_desempeña"]).','.utf8_decode($data["nombres"]).','.utf8_decode($data["documento"]).','.utf8_decode($data["email"]).','.utf8_decode($data["phone1"]).','.utf8_decode($data["Curso"]).','.utf8_decode($data["fecha_matriculacion"]).','.utf8_decode($data["Cantidad_de_horas"]).','.utf8_decode($data["Nivel_de_avance"])." \n";
+						//$salida_csv .=utf8_decode($data["provincia_de_residencia"]).';'.utf8_decode($data["tipo_y_lugar_de_trabajo"]).';'.utf8_decode($data["establecimiento"]).';'.utf8_decode($data["tipo_de_organismo_y_organismo"]).';'.utf8_decode($data["tipo_de_función"]).';'.utf8_decode($data["función_que_desempeña"]).';'.utf8_decode($data["nombres"]).';'.utf8_decode($data["documento"]).';'.utf8_decode($data["email"]).';'.utf8_decode($data["phone1"]).';'.utf8_decode($data["Curso"]).';'.utf8_decode($data["fecha_matriculacion"]).';'.utf8_decode($data["Cantidad_de_horas"]).';'.utf8_decode($data["Nivel_de_avance"])." \n";
+			        }
+				}
+		else {
+			
+			$data['Nivel_de_avance'] = date('d-m-Y',$data['Nivel_de_avance']);
+			//echo '<br />: fecha final: '.$data['Nivel_de_avance']; 
+			$date = explode('-',$data['Nivel_de_avance']);
+			if ($date[2] == $year){
+				//echo '<tr><td>'.$data["provincia_de_residencia"].'</td><td>'.$data["tipo_y_lugar_de_trabajo"].'</td><td>'.$data["establecimiento"].'</td><td>'.$data["tipo_de_organismo_y_organismo"].'</td><td>'.$data["tipo_de_función"].'</td><td>'.$data["función_que_desempeña"].'</td><td>'.$data["nombres"].'</td><td>'.$data["documento"].'</td><td>'.$data["email"].'</td><td>'.$data["phone1"].'</td><td>'.$data["Curso"].'</td><td>'.$data["fecha_matriculacion"].'</td><td>'.$data["Cantidad_de_horas"].'</td><td>'.$data["Nivel_de_avance"].'</td></tr>';
+	        	$salida_csv .=utf8_decode($data["provincia_de_residencia"]).','.utf8_decode($data["tipo_y_lugar_de_trabajo"]).','.utf8_decode($data["establecimiento"]).','.utf8_decode($data["tipo_de_organismo_y_organismo"]).','.utf8_decode($data["tipo_de_función"]).','.utf8_decode($data["función_que_desempeña"]).','.utf8_decode($data["nombres"]).','.utf8_decode($data["documento"]).','.utf8_decode($data["email"]).','.utf8_decode($data["phone1"]).','.utf8_decode($data["Curso"]).','.utf8_decode($data["fecha_matriculacion"]).','.utf8_decode($data["Cantidad_de_horas"]).','.utf8_decode($data["Nivel_de_avance"])." \n";
+	        	//$salida_csv .=utf8_decode($data["provincia_de_residencia"]).';'.utf8_decode($data["tipo_y_lugar_de_trabajo"]).';'.utf8_decode($data["establecimiento"]).';'.utf8_decode($data["tipo_de_organismo_y_organismo"]).';'.utf8_decode($data["tipo_de_función"]).';'.utf8_decode($data["función_que_desempeña"]).';'.utf8_decode($data["nombres"]).';'.utf8_decode($data["documento"]).';'.utf8_decode($data["email"]).';'.utf8_decode($data["phone1"]).';'.utf8_decode($data["Curso"]).';'.utf8_decode($data["fecha_matriculacion"]).';'.utf8_decode($data["Cantidad_de_horas"]).';'.utf8_decode($data["Nivel_de_avance"])." \n";
+	        }
+		}
+	}
+
+}
+
+header("Content-type: application/vnd.ms-excel");
+header("Content-disposition: csv" . date("Y-m-d") . ".csv");
+header( "Content-disposition: filename=".$nombre_fichero.".csv");
+print $salida_csv;
+exit;
+?>

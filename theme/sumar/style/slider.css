@@ -1,0 +1,139 @@
+#example {
+	width:587px;
+	height:272px;
+	position:relative;
+	margin: 0 auto;
+}
+
+#frame {
+	position:absolute;
+	z-index:0;
+	width:739px;
+	height:341px;
+	top:-3px;
+	left:-80px;
+}
+
+/*
+	Slideshow
+*/
+
+#slides {
+	position:absolute;
+/*	top:15px;
+	left:4px;*/
+	z-index:100;
+}
+
+/*
+	Slides container
+	Important:
+	Set the width of your slides container
+	Set to display none, prevents content flash
+*/
+
+.slides_container {
+	width:587px;
+	overflow:hidden;
+	position:relative;
+	display:none;
+}
+
+/*
+	Each slide
+	Important:
+	Set the width of your slides
+	If height not specified height will be set by the slide content
+	Set to display block
+*/
+
+.slides_container div.slide {
+	width:587px;
+	height:272px;
+	display:block;
+}
+
+
+/*
+	Next/prev buttons
+*/
+
+#slides .next,#slides .prev {
+	position:absolute;
+	top:107px;
+	left:0px;
+	width:38px;
+	height:48px;
+	display:block;
+	z-index:101;
+	opacity: 0.2;
+}
+
+#slides a.next:hover,
+#slides a.prev:hover{
+	opacity: 0.8;
+}
+
+#slides .next {
+	left:551px;
+	background-image:url([[pix:theme|slider/fleche2]]);
+}
+
+#slides .prev {
+	background-image:url([[pix:theme|slider/fleche1]]);
+}
+
+/*
+	Pagination
+*/
+
+.pagination {
+	margin:26px auto 0;
+	width:100px;
+}
+
+.pagination li {
+	float:left;
+	margin:0 1px;
+	list-style:none;
+}
+
+.pagination li a {
+	display:block;
+	width:12px;
+	height:0;
+	padding-top:12px;
+	background-image:url([[pix:theme|slider/pagination]]);
+	background-position:0 0;
+	float:left;
+	overflow:hidden;
+}
+
+.pagination li.current a {
+	background-position:0 -12px;
+}
+
+/*
+	Caption
+*/
+
+.caption {
+	z-index:500;
+	position:absolute;
+	bottom:-35px;
+	left:0;
+	height:50px;
+	padding:5px 20px 0 20px;
+	background:#000;
+	background:rgba(0,0,0,.5);
+	width:547px;
+	font-size:1em;
+	line-height:1.33;
+	color:#fff;
+	/*border-top:1px solid #000;*/
+	text-shadow:none;
+}
+
+div.caption h2{
+	margin: 0;
+}
